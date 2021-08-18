@@ -1,0 +1,199 @@
+-- 1 Calculate the number of health facilities per commune. 
+
+-- SELECT commune."commune" as Commune, COUNT(spa."facdesc_1") as Quantity
+-- FROM commune
+-- INNER JOIN spa
+-- on spa."commune_id" = commune."commune_id"
+-- GROUP BY Commune
+-- ORDER BY Quantity DESC
+
+-- 2 Calculate the number of health facilities by commune and by type of health facility.
+
+-- SELECT commune."commune" as Commune, facdesc_table."facdesc_1" as Etablissements,
+-- COUNT(spa."facdesc_1") as Qte
+-- FROM commune
+-- INNER JOIN spa
+-- on spa."commune_id" = commune."commune_id"
+-- INNER JOIN facdesc_table
+-- on facdesc_table."id" = spa."facdesc_1"
+-- GROUP BY Commune, Etablissements
+-- ORDER BY Commune, Qte DESC
+
+-- 3 Calculate the number of health facilities by municipality and by department.
+
+-- SELECT departement."departement" as Departement,
+-- commune."commune" as Commune,
+-- COUNT(spa."facdesc_1") as QTE
+-- FROM commune
+-- INNER JOIN spa
+-- on spa."commune_id" = commune."commune_id"
+-- INNER JOIN departement 
+-- on departement."adm1code" = commune."departement_id"
+-- GROUP BY Commune, Departement
+-- ORDER BY Departement, QTE DESC
+
+-- 4 Calculate the number of sites by type (mga) and by department. 
+
+-- SELECT departement."departement" as Departement, mga_table."mga_type" as mga_type, COUNT(spa."facdesc_1") as sites
+-- FROM spa 
+-- INNER JOIN commune 
+-- on spa."commune_id" = commune."commune_id"
+-- INNER JOIN departement
+-- on commune."departement_id" = departement."adm1code"
+-- INNER JOIN mga_table 
+-- on spa."mga" = mga_table."mga"
+-- GROUP BY Departement, mga_type
+-- ORDER BY Departement, sites
+
+-- 5 Calculate the number of sites with an ambulance by municipality and by department (ambulance = 1.0)
+
+-- SELECT departement."departement" as Departement, commune."commune" as Commune, count (spa."facdesc_1") as site_for_one_amb
+-- FROM spa
+-- INNER JOIN commune
+-- on spa."commune_id" = commune."commune_id"
+-- INNER JOIN departement
+-- on commune."departement_id"= departement."adm1code"
+-- WHERE spa."ambulance" = 1.0
+-- GROUP BY Commune, Departement
+-- ORDER BY Departement, site_for_one_amb
+
+-- 6 Calculate the number of hospitals per 10k inhabitants per department.
+
+-- select d."departement", count (s."facdesc"), sum(distinct co."population"),
+-- 		round((count(s."facdesc")*10000/sum(distinct co."population")), 5) as Hopital_10000_habs
+-- from spa as s
+-- inner join commune as co
+-- on s."commune_id"=co."commune_id"
+-- inner join departement as d
+-- on co."departement_id"= d."departement_id"
+-- where s."facdesc_1" = 'HOPITAL'
+-- group by d."departement"
+-- order by d."departement";
+
+
+-- 7 Calculate the number of sites per 10k inhabitants per department 
+
+-- SELECT departement."departement" as Departement, COUNT(spa."facdesc_1"), SUM(DISTINCT commune."population"),
+-- 	round((COUNT(spa."facdesc_1")*10000/SUM(DISTINCT commune."population")), 5) as sites_1000_habs
+-- FROM spa 
+-- INNER JOIN commune 
+-- on spa."commune_id" = commune."commune_id"
+-- INNER JOIN departement
+-- on commune."departement_id"= departement."adm1code"
+-- GROUP BY Departement
+-- ORDER BY Departement;
+
+--  8 Calculate the number of beb per 1k inhabitants per department.
+-- with sum_pop as
+-- 	(SELECT commune."departement_id", SUM(commune."population") as commune
+-- FROM commune 
+-- 	 group by commune."departement_id")
+-- SELECT departement."departement", count(spa."num_beds") as beds, com,
+-- 		round((count(spa."num_beds")*1000/com), 5) as Beds_1000_habs
+-- FROM spa 
+-- INNER JOIN commune 
+-- on spa."commune_id"=commune."commune_id"
+-- INNER JOIN departement
+-- on commune."departement_id"= departement."adm1code"
+-- INNER JOIN sum_pop as sp
+-- on departement."adm1code"= spa."departement_id"
+-- GROUP BY departement."departement", com
+-- ORDER BY com desc;
+
+-- 9 how many communes have fewer dispensaries than hospitals?
+
+-- with sum_hop as
+-- 	(SELECT commune."commune", commune."commune_id", COUNT(facdesc_table."facdesc_1") as HOPITAL
+-- 	FROM commune
+-- 	INNER JOIN spa
+-- 	on commmune."commune_id" = spa."commune_id"
+-- 	INNER JOIN facdesc_table
+-- 	on spa."facdesc_1" = facdesc_table."id"
+-- 	WHERE id = '2'
+-- 	GROUP BY commune."commune", commune."commune_id"
+-- 	ORDER BY HOPITAL desc),
+-- sum_dis as
+-- 	(SELECT commune."commune", commune."commune_id", COUNT(facdesc_table."facdesc_1") as DISPENSAIRE
+-- 	FROM commune
+-- 	INNER JOIN spa
+--  	on commune."commune_id" = spa."commune_id"
+-- 	INNER JOIN facdesc_table
+-- 	on spa."facdesc_1" = facdesc_table."id"
+-- 	WHERE id = '1'
+-- 	GROUP BY commune."commune", commune."commune_id"
+-- 	ORDER BY DISPENSAIRE desc)
+--  SELECT sh."commune", HOPITAL, DISPENSAIRE
+--  FROM sum_hop as sh
+-- INNER JOIN sum_dis as sd
+-- on sh."commune_id"=sd."commune_id"
+--  GROUP BY sh."commune", HOPITAL, DISPENSAIRE
+-- HAVING HOPITAL>DISPENSAIRE
+-- ORDER BY commune; 
+
+-- 10 How many  Letality rate per month?
+
+-- SELECT round((sum(covid."deces")/(sum(covid."cas_confirmes"))),3) as tx_letalite, 
+-- 		dt."month"
+-- FROM covid
+-- INNER JOIN date_table
+-- on covid."Date_Id" = date_table."Date_Id"
+-- GROUP BY dt."month";
+
+-- 11 How many Death rate per month?
+-- SELECT round((sum(covid."deces")/(sum(commune."population"))),8) as tx_mortalite, 
+-- 		date_table."month"
+-- FROM covid
+-- INNER JOIN date_table
+-- on covid."Date_Id"=date_table."Date_Id"
+-- INNER JOIN departement
+-- on covid."departement_id" = departement."adm1code"
+-- INNER JOIN commune
+-- on departement."adm1code" = commune."departement_id"
+-- GROUP BY date_table."month";
+
+-- 12 How many Prevalence per month?
+-- SELECT date_table."month", round(((sum(covid."cas_suspects" + covid."cas_confirmes"))/(sum(c."population"))),6) as prevalence 
+-- FROM covid
+-- INNER JOIN date_table
+-- on covid."Date_Id" = date_table."Date_Id"
+-- INNER JOIN departement
+-- on covid."departement_id"= departement."adm1code"
+-- INNER JOIN commune
+-- on departement."adm1code" = commune."departement_id"
+-- GROUP BY date_table."month"
+-- ORDER BY prevalence desc;
+
+-- 13 How many Prevalence by department?
+-- SELECT departement."departement", round(((sum(covid."cas_suspects" + covid."cas_confirmes"))/(sum(commune."population"))),8) as prevalence 
+-- FROM covid
+-- INNER JOIN date_table
+-- on covid."Date_Id" = date_table."Date_Id"
+-- INNER JOIN departement
+-- on covid."departement_id" = departement."adm1code"
+-- INNER JOIN commune
+-- on departement."adm1code" = commune."departement_id"
+-- GROUP BY departement."departement"
+-- ORDER BY prevalence desc;
+
+--  14 What is the variation of the prevalence per week
+
+-- SELECT date_table."week", ROUND(((SUM(covid."cas_suspects" + covid."cas_confirmes"))/(SUM(commune."population"))),8) as Prevalence 
+-- FROM covid
+-- INNER JOIN date_table
+-- on covid."Date_Id"=date_table."Date_Id"
+-- INNER JOIN departement
+-- on covid."departement_id"=departement."adm1code"
+-- INNER JOIN commune 
+-- on departement."adm1code" = commune."departement_id"
+-- GROUP BY date_table."week"
+-- ORDER BY date_table."week";
+
+
+
+
+
+
+
+
+
+
